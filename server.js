@@ -2,12 +2,9 @@ const express = require("express");
 const dotenv = require("dotenv");
 const mongoose = require("mongoose");
 const cors = require("cors");
-const path = require("path");
-
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const orderRoutes = require("./routes/orderRoutes");
-const uploadRoutes = require("./routes/uploadRoutes"); // ✅ add this
 
 // Load env variables
 dotenv.config();
@@ -27,6 +24,7 @@ mongoose
         console.log("🧹 Dropped legacy index id_1 from products collection");
       }
     } catch (e) {
+      // Ignore if collection not yet created or index missing
       if (e && e.codeName !== "IndexNotFound") {
         console.warn("Index cleanup warning:", e.message);
       }
@@ -42,18 +40,17 @@ const app = express();
 // Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-app.use(cors());
-
-// JSON parsing error handling
+// Custom error handling for JSON parsing errors
 app.use((err, req, res, next) => {
-  if (err instanceof SyntaxError && err.status === 400 && "body" in err) {
-    console.error("Bad JSON in request body:", err.message);
-    return res.status(400).json({ message: "Invalid JSON payload sent." });
+  if (err instanceof SyntaxError && err.status === 400 && 'body' in err) {
+    console.error('Bad JSON in request body:', err.message);
+    return res.status(400).json({ message: 'Invalid JSON payload sent.' });
   }
   next();
 });
-
+app.use(cors());
 // Static files for uploaded images
+const path = require("path");
 app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 // Simple request logger
@@ -66,7 +63,6 @@ app.use((req, res, next) => {
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
-app.use("/api/upload", uploadRoutes); // ✅ image uploads
 
 // Health
 app.get("/api/health", (req, res) => {
@@ -80,11 +76,7 @@ app.get("/", (req, res) => {
 
 // 404 handler
 app.use((req, res, next) => {
-  res.status(404).json({
-    message: "Not Found",
-    method: req.method,
-    path: req.originalUrl,
-  });
+  res.status(404).json({ message: "Not Found", method: req.method, path: req.originalUrl });
 });
 
 // Error handler

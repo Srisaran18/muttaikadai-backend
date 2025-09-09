@@ -1,31 +1,14 @@
-const multer = require("multer");
-const path = require("path");
-const fs = require("fs");
+const express = require("express");
+const router = express.Router();
+const upload = require("../middleware/uploadMiddleware"); // your multer file
 
-const uploadsDir = path.join(__dirname, "..", "uploads");
-if (!fs.existsSync(uploadsDir)) {
-  fs.mkdirSync(uploadsDir);
-}
-
-const storage = multer.diskStorage({
-  destination: function (_req, _file, cb) {
-    cb(null, uploadsDir);
-  },
-  filename: function (_req, file, cb) {
-    const ext = path.extname(file.originalname) || "";
-    const base = path.basename(file.originalname, ext).replace(/[^a-z0-9-_]/gi, "_");
-    cb(null, `${Date.now()}_${base}${ext}`);
-  },
+// Single image upload
+router.post("/", upload.single("image"), (req, res) => {
+  if (!req.file) {
+    return res.status(400).json({ message: "No file uploaded" });
+  }
+  // Return relative path to frontend
+  res.json({ imageUrl: `/uploads/${req.file.filename}` });
 });
 
-const fileFilter = (_req, file, cb) => {
-  const allowed = ["image/jpeg", "image/png", "image/gif", "image/webp"];
-  if (allowed.includes(file.mimetype)) cb(null, true);
-  else cb(new Error("Only image files are allowed"));
-};
-
-const upload = multer({ storage, fileFilter, limits: { fileSize: 5 * 1024 * 1024 } });
-
-module.exports = upload;
-
-
+module.exports = router;

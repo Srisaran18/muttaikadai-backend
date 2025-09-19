@@ -38,7 +38,70 @@ const registerUser = async (req, res) => {
   }
 };
 
-// ...existing code...
+// Admin: list all users
+const adminListUsers = async (req, res) => {
+  try {
+    const users = await User.find().select("-password");
+    res.json(users);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Admin: delete user by id
+const adminDeleteUser = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    if (!userId) return res.status(400).json({ message: "User ID is required" });
+    if (userId === req.user.id) {
+      return res.status(400).json({ message: "Admins cannot delete themselves" });
+    }
+    const user = await User.findByIdAndDelete(userId);
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json({ message: "User deleted" });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Admin: block/unblock user
+const adminToggleBlock = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { isBlocked } = req.body || {};
+    if (typeof isBlocked !== "boolean") {
+      return res.status(400).json({ message: "isBlocked boolean is required" });
+    }
+    if (userId === req.user.id) {
+      return res.status(400).json({ message: "Admins cannot block themselves" });
+    }
+    const user = await User.findByIdAndUpdate(userId, { isBlocked }, { new: true }).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+// Admin: toggle admin role
+const adminToggleAdmin = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const { isAdmin } = req.body || {};
+    if (typeof isAdmin !== "boolean") {
+      return res.status(400).json({ message: "isAdmin boolean is required" });
+    }
+    if (userId === req.user.id) {
+      return res.status(400).json({ message: "Admins cannot change their own role" });
+    }
+    const role = isAdmin ? "admin" : "user";
+    const user = await User.findByIdAndUpdate(userId, { role }, { new: true }).select("-password");
+    if (!user) return res.status(404).json({ message: "User not found" });
+    res.json(user);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
  
 // Login User
 const loginUser = async (req, res) => {
@@ -57,6 +120,11 @@ const loginUser = async (req, res) => {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    // Prevent blocked users from logging in
+    if (user.isBlocked) {
+      return res.status(403).json({ message: "Your account has been blocked. Contact support." });
     }
 
     const token = jwt.sign(
@@ -134,4 +202,4 @@ const deleteAddress = async (req, res) => {
   }
 };
 
-module.exports = { registerUser, loginUser, getMe, addAddress, updateAddress, deleteAddress };
+module.exports = { registerUser, loginUser, getMe, addAddress, updateAddress, deleteAddress, adminListUsers, adminDeleteUser, adminToggleBlock, adminToggleAdmin };

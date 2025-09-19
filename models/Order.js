@@ -38,6 +38,7 @@ const orderSchema = new mongoose.Schema(
       enum: ["pending", "processing", "shipped", "delivered", "cancelled"],
       default: "pending",
     },
+  contactPhone: { type: String, default: "" },
     orderDate: { type: Date, default: Date.now },
   },
   { timestamps: true }

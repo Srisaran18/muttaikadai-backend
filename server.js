@@ -5,6 +5,8 @@ const cors = require("cors");
 const userRoutes = require("./routes/userRoutes");
 const productRoutes = require("./routes/productRoutes");
 const orderRoutes = require("./routes/orderRoutes");
+const uploadRoutes = require("./routes/uploadRoutes");
+
 
 // Load env variables
 dotenv.config();
@@ -63,6 +65,8 @@ app.use((req, res, next) => {
 app.use("/api/users", userRoutes);
 app.use("/api/products", productRoutes);
 app.use("/api/orders", orderRoutes);
+app.use("/api/upload", uploadRoutes);
+
 
 // Health
 app.get("/api/health", (req, res) => {
